@@ -3,3 +3,4 @@ pandas
 tenacity
 pytest
 flake8
+python-dotenv
