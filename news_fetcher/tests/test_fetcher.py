@@ -61,3 +61,4 @@ class Testnormalize_newsapi_article:
 
         assert isinstance(norm["source"], str)
         assert norm["source"] == "456"
+        assert norm["raw"] == raw
