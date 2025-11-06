@@ -63,14 +63,15 @@ def _do_get(url: str, params: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
 
 def _normalize_newsapi_article(raw_article:dict) -> dict:
 
+
     return {
-        "source":raw_article.get("source", {}).get("name") if isinstance(raw_article.get("source"), dict) else raw_article.get("source"),
-        "author": raw_article.get("author"),
-        "title": raw_article.get("title"),
-        "description": raw_article.get("description"),
-        "url": raw_article.get("url"),
-        "published_at": raw_article.get("publishedAt"),
-        "content": raw_article.get("content"),
+        "source":str(raw_article.get("source", {}).get("name") if isinstance(raw_article.get("source"), dict) else raw_article.get("source")),
+        "author": str(raw_article.get("author")),
+        "title": str(raw_article.get("title")),
+        "description": str(raw_article.get("description")),
+        "url": str(raw_article.get("url")),
+        "published_at": str(raw_article.get("publishedAt")),
+        "content": str(raw_article.get("content")),
         "raw" : raw_article,
     }
 
