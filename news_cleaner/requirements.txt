@@ -4,5 +4,4 @@ typing
 pytest
 flake8
 python-dotenv
-re 
 bs4
