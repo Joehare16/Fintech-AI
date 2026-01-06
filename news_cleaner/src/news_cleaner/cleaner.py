@@ -14,6 +14,15 @@ def clean_text(text:str) -> str:
 
     return text.strip()
 
+def extract_first_author_name(author: str) -> str:
+    if pd.isna(author):
+        return ""
+    author = author.lower().strip()
+    authors = author.split(",")
+    authors = [a for a in authors if '@' not in a]
+    author = authors[0].strip()
+    return author
+
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     print("Performing cleaning")
     
@@ -28,6 +37,10 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 #df[col] = df[col].str.replace(rf"\b{re.escape(word)}\b", "", regex=True)
         else:
             df[col] = ""
+
+    # Some authors contain email and name we just need name
+    
+    df["author"] = df["author"].apply(extract_first_author_name)
 
     df = df.replace("", pd.NA)
     df = df.dropna(how="all",subset = ["title","content"])

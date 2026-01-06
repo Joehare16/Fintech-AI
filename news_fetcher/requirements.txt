@@ -4,3 +4,4 @@ tenacity
 pytest
 flake8
 python-dotenv
+psycopg2-binary

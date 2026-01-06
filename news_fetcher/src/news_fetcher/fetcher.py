@@ -4,6 +4,9 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
+import os 
+import psycopg2
+
 import pandas as pd
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -15,6 +18,23 @@ logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 10 # seconds 
 DEFAULT_MAX_PAGES = 5
 PAGE_SIZE = 20 # max for newsapi
+
+QUERY_KEYWORDS = "(stock OR stocks OR shares OR equity OR earnings OR revenue OR profit OR guidance OR investors OR market OR markets OR Wall Street OR IPO OR acquisition OR merger OR takeover OR hedge fund OR asset manager OR portfolio)"
+DOMAIN_SOURCES = ("bloomberg.com,techcrunch.com,reuters.com,wsj.com,financialpost.com,ft.com,cnbc.com,marketwatch.com,investopedia.com,seekingalpha.com,theverge.com,theinformation.com")
+
+try: 
+    conn = psycopg2.connect(
+        host = os.getenv("HOST", "localhost"),
+        user = os.getenv("POSTGRES_USER", "postgres"),
+        password = os.getenv("POSTGRES_PASSWORD", "postgres"),
+        dbname = os.getenv("POSTGRES_DB", "FintechAI"),
+        port = 5432)
+    print("Database connection established.")
+except Exception as e:
+        print("Error connecting to database: %s", e)
+
+cur = conn.cursor()
+
 
 
 class FetcherError(Exception):
@@ -75,13 +95,34 @@ def _normalize_newsapi_article(raw_article:dict) -> dict:
         "raw" : raw_article,
     }
 
+def insert_articles_to_db(cur, articles: List[dict]):
+    try:
+        for article in articles: 
+            cur.execute(
+            """INSERT INTO articles(source,author,title,description,url, published_at, content)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                article["source"],
+                article["author"],
+                article["title"],
+                article["description"],
+                article["url"],
+                article["published_at"],
+                article["content"]
+            ),
+        )
+    except Exception as e:
+            logger.error("Database insert failed: %s", e)
+
 # call the do_get function to get the newsapi data page by page, supply the args for the api call
 #pages - if we want 200 articles each page is 50 therefore we need 4 page / apis calls
-def _fetch_newsapi_page(query: str, language: str, from_date: Optional[str], page: int, page_size: int) -> List[dict]:
+def _fetch_newsapi_page(query: str, domains: str, language: str, from_date: Optional[str], page: int, page_size: int) -> List[dict]:
 
     #sets parameters for the api call
     params = {
         "q": query,
+        "domains": domains,
         "language": language,
         "page": page,
         "pageSize": page_size,
@@ -98,7 +139,8 @@ def _fetch_newsapi_page(query: str, language: str, from_date: Optional[str], pag
     return [_normalize_newsapi_article(article) for article in articles]
 
 
-def fetch_news(query: str = "technology",
+def fetch_news(query: str = QUERY_KEYWORDS,
+    domains: str = DOMAIN_SOURCES,
     language: str = "en",
     days_back: int = 1,
     page_size: int = PAGE_SIZE,
@@ -109,7 +151,7 @@ def fetch_news(query: str = "technology",
     collected = []
     for page in range(1 , max_pages + 1):
         try:
-            page_items = _fetch_newsapi_page(query,language,from_date, page, page_size)
+            page_items = _fetch_newsapi_page(query,domains,language,from_date, page, page_size)
         except Exception as e:
             logger.error("Error fetching page %s: %s", page, e)
             break
@@ -119,6 +161,14 @@ def fetch_news(query: str = "technology",
         collected.extend(page_items) #adds these new    articles to the collected list
         logger.info("Fetched %s articles from page %s", len(page_items), page)
 
+        logger.info("attempting to store in database")
+        try:
+            insert_articles_to_db(cur, page_items)
+            conn.commit()
+            logger.info("Successfully inserted page %s into the DB", page)
+        except Exception as e:
+            logger.error("Failed to insert page %s into the DB due to error %s", (page, e))
+            continue
         if len(page_items)  < page_size:
             logger.info("Fewer articles than page size (%s) on page %s, stopping.", page_size, page)
             break

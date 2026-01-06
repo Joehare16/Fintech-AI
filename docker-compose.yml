@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  news_cleaner:
+    build:
+      context: ./news_cleaner
+    container_name: news_cleaner
+    environment: 
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./news_cleaner:/app/news_cleaner
+    ports:
+      - "8001:8001"
+    
+  news_fetcher:
+    build:
+      context: ./news_fetcher
+    container_name: news_fetcher
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .news_fetcher:/app/news_fetcher
+    ports:
+      - "8000:8000"
+    depends_on:
+      - news_cleaner
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      HOST: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: FintechAI
+    ports:
+     - "5432:5432"
+    volumes: 
+      - pgdata:/var/lib/postgresql/data

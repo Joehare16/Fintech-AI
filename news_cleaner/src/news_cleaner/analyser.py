@@ -24,7 +24,6 @@ def analyse_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df["word_count"] = df["content"].apply(lambda text: len(TextBlob(text).words) if isinstance(text,str) else 0)
     df["adj_ratio"] = df["content"].apply(lambda text: analyse_POS(text, "JJ")) 
     df["verb_ratio"] = df["content"].apply(lambda text: analyse_POS(text, "VB"))
-    print("analysis complete added to dataframe")
-
+    print("Analysis complete")
     return df
 

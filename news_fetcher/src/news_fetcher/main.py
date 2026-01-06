@@ -7,8 +7,5 @@ from .config import RAW_DATA_FILE
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 if __name__ == "__main__":
-    df = fetch_news(query="technology",days_back=4)
-    print(df.head())
-    print(f"/n Successfully fetched {len(df)} articles.")
-    df.to_csv(RAW_DATA_FILE, index=False)
-    print("\n Saved to data/raw/news_articles.csv")
+    fetch_news(query="technology",days_back=4)
+    logging.info("News fetching completed. Articles stored in database.")
